@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TIR – Csongrád-Csanád Vármegye</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, push, onValue, update, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+const cfg={apiKey:"AIzaSyAcudE4fBAdD5IxRyPHOi0GxIwe7tZRCSA",authDomain:"tuzolto-rendszer.firebaseapp.com",databaseURL:"https://tuzolto-rendszer-default-rtdb.europe-west1.firebasedatabase.app",projectId:"tuzolto-rendszer",storageBucket:"tuzolto-rendszer.firebasestorage.app",messagingSenderId:"483542268965",appId:"1:483542268965:web:78009fde4e4d6820c793cc"};
+const app=initializeApp(cfg);const db=getDatabase(app);
+window.FB={db,ref,set,push,onValue,update,get};
+window.dispatchEvent(new Event('firebase-ready'));
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,Helvetica,sans-serif;font-size:13px;background:#8b0000;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:6px;}
+#frame{width:100%;max-width:1340px;background:#8b0000;border:5px solid #cc0000;padding:5px;min-height:calc(100vh - 12px);display:flex;flex-direction:column;}
+#inner{background:#1e3f7a;flex:1;display:flex;flex-direction:column;border:1px solid #4466aa;}
+#loading{position:fixed;inset:0;background:#8b0000;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
+.lt{color:#fff;font-size:14px;font-weight:bold;letter-spacing:2px;}
+.lb{width:220px;height:5px;background:#550000;}
+.lf{height:100%;background:#ffcc00;animation:lfa 1.5s infinite;}
+@keyframes lfa{0%{width:0%}100%{width:100%}}
+#loginscr{position:fixed;inset:0;background:#8b0000;display:none;align-items:center;justify-content:center;z-index:1000;}
+#loginscr.show{display:flex;}
+.lbox{background:#1e3f7a;border:3px solid #cc0000;padding:28px 36px;width:390px;box-shadow:0 0 40px rgba(0,0,0,0.7);}
+.lfire{font-size:44px;text-align:center;display:block;margin-bottom:8px;}
+.ltitle{text-align:center;color:#fff;font-size:14px;font-weight:bold;margin-bottom:3px;}
+.lsub{text-align:center;color:#aac4e8;font-size:11px;margin-bottom:18px;}
+.lfrow{margin-bottom:11px;}
+.lfrow label{display:block;color:#aac4e8;font-size:12px;margin-bottom:3px;}
+.linp{width:100%;padding:5px 8px;background:white;border:2px inset #888;font-size:13px;color:#000;}
+.lbtn{width:100%;padding:8px;background:linear-gradient(180deg,#4488ee 0%,#2255bb 100%);border:2px outset #6699ff;color:white;font-size:14px;font-weight:bold;cursor:pointer;margin-top:6px;}
+.lbtn:hover{background:linear-gradient(180deg,#5599ff 0%,#3366cc 100%);}
+.lerr{color:#ff8888;font-size:12px;text-align:center;margin-top:8px;min-height:16px;}
+.lhint{color:#7799bb;font-size:11px;text-align:center;margin-top:10px;}
+#app{display:none;flex-direction:column;flex:1;}
+#app.on{display:flex;}
+.topbar{background:linear-gradient(180deg,#2a5fbb 0%,#1e3f7a 100%);border-bottom:2px solid #cc0000;padding:5px 10px;display:flex;align-items:center;gap:10px;min-height:44px;flex-wrap:wrap;}
+.ttitle{color:#fff;font-size:13px;font-weight:bold;flex:1;}
+.tclock{color:#ffdd00;font-size:20px;font-weight:bold;font-family:'Courier New',monospace;letter-spacing:3px;}
+.sdot{width:8px;height:8px;border-radius:50%;background:#44ff44;display:inline-block;animation:sp 2s infinite;}
+.sdot.off{background:#ff4444;animation:none;}
+@keyframes sp{0%,100%{opacity:1}50%{opacity:0.3}}
+.slbl{color:#88ff88;font-size:11px;}
+.tusr{color:#cce0ff;font-size:12px;display:flex;align-items:center;gap:6px;}
+.tusr strong{color:#fff;}
+.xb{background:linear-gradient(180deg,#f0f0f0 0%,#d0d0d0 100%);border:2px outset #fff;color:#000;padding:3px 10px;font-size:12px;cursor:pointer;font-family:Arial;}
+.xb:hover{background:linear-gradient(180deg,#ddeeff 0%,#aabbdd 100%);}
+.xbr{background:linear-gradient(180deg,#ff8888 0%,#cc2222 100%);border:2px outset #ff9999;color:#fff;padding:3px 10px;font-size:12px;cursor:pointer;}
+.xbbl{background:linear-gradient(180deg,#88aaff 0%,#2244bb 100%);border:2px outset #99bbff;color:#fff;padding:3px 10px;font-size:12px;cursor:pointer;}
+.xbgo{background:linear-gradient(180deg,#ffee88 0%,#cc9900 100%);border:2px outset #ffee99;color:#000;padding:3px 10px;font-size:12px;cursor:pointer;}
+.xbgr{background:linear-gradient(180deg,#88ee88 0%,#226622 100%);border:2px outset #99ff99;color:#fff;padding:3px 10px;font-size:12px;cursor:pointer;}
+.nav{background:#1e3f7a;display:flex;padding:4px 8px 0;gap:2px;border-bottom:2px solid #cc0000;flex-wrap:wrap;}
+.ntab{background:linear-gradient(180deg,#3366cc 0%,#1e3f7a 100%);border:1px solid #5588ee;border-bottom:none;color:#fff;padding:5px 13px;font-size:12px;font-weight:bold;cursor:pointer;}
+.ntab:hover{background:linear-gradient(180deg,#4477dd 0%,#2255aa 100%);}
+.ntab.on{background:linear-gradient(180deg,#5588ff 0%,#2255cc 100%);border-bottom:2px solid #2255cc;position:relative;top:1px;}
+.nbdg{background:#cc0000;color:#fff;border-radius:8px;padding:0 5px;font-size:10px;margin-left:4px;}
+.cnt{flex:1;padding:8px;overflow-y:auto;background:#1e3f7a;}
+.pg{display:none;}
+.pg.on{display:block;}
+.win{background:#d0ddf5;border:2px solid #6688cc;border-top-color:#aabbee;border-left-color:#aabbee;margin-bottom:8px;}
+.wbar{background:linear-gradient(180deg,#3366cc 0%,#1a4499 100%);color:#fff;padding:4px 8px;font-size:13px;font-weight:bold;display:flex;align-items:center;justify-content:space-between;}
+.wbody{padding:8px;background:#d0ddf5;}
+.wclose{background:linear-gradient(180deg,#ff9999 0%,#cc2222 100%);border:1px outset #ff9999;color:#fff;width:16px;height:16px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:bold;}
+.sbar{background:linear-gradient(180deg,#3366cc 0%,#1a4499 100%);color:#fff;padding:4px 8px;font-size:12px;font-weight:bold;margin-bottom:4px;}
+.fl{display:flex;align-items:center;margin-bottom:5px;gap:6px;}
+.fl label{color:#00006f;font-size:12px;font-weight:bold;min-width:130px;text-align:right;}
+.xi{background:white;border:2px inset #888;padding:3px 6px;font-size:12px;color:#000;min-width:160px;}
+.xi:focus{outline:2px solid #3366cc;}
+.xs{background:white;border:2px inset #888;padding:3px 4px;font-size:12px;color:#000;min-width:160px;}
+.xta{background:white;border:2px inset #888;padding:4px 6px;font-size:12px;color:#000;width:100%;resize:vertical;min-height:60px;}
+.xt{width:100%;border-collapse:collapse;font-size:12px;}
+.xt th{background:linear-gradient(180deg,#4477cc 0%,#2255aa 100%);color:#fff;padding:4px 8px;text-align:left;border:1px solid #336699;}
+.xt td{padding:3px 8px;border:1px solid #9999cc;background:white;vertical-align:middle;}
+.xt tr:hover td{background:#ddeeff!important;}
+.xt tr.rr td{background:#ffaaaa!important;}
+.xt tr.ry td{background:#ffeeaa!important;}
+.xt tr.rg td{background:#aaffaa!important;}
+.bdg{display:inline-block;padding:1px 7px;font-size:11px;font-weight:bold;border:1px solid #000;}
+.br{background:#cc0000;color:#fff;border-color:#990000;}
+.by{background:#cc8800;color:#fff;border-color:#996600;}
+.bg{background:#006600;color:#fff;border-color:#004400;}
+.bb{background:#003399;color:#fff;border-color:#001166;}
+.lnk{background:none;border:none;color:#0000cc;text-decoration:underline;cursor:pointer;font-size:12px;font-family:Arial;}
+.lnk:hover{color:#cc0000;}
+#map{width:100%;height:290px;border:2px inset #888;}
+#map2{width:100%;height:260px;border:2px inset #888;}
+.dclock{text-align:center;color:#ffdd00;font-size:44px;font-weight:bold;font-family:'Courier New',monospace;letter-spacing:8px;text-shadow:0 0 20px rgba(255,220,0,0.6);padding:4px 0;}
+.dsub{text-align:center;color:#aaccff;font-size:12px;margin-bottom:8px;}
+.abar{background:#cc0000;color:#fff;padding:5px 10px;margin-bottom:5px;display:flex;align-items:center;gap:10px;font-size:12px;font-weight:bold;border:1px solid #ff0000;animation:ab 1.5s infinite;}
+@keyframes ab{0%,100%{background:#cc0000}50%{background:#ff1100}}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:6px;margin-bottom:8px;}
+.sc{background:#2255aa;border:1px solid #4477cc;padding:5px;}
+.stitle{color:#ffdd00;font-size:12px;font-weight:bold;border-bottom:1px solid #4477cc;padding-bottom:3px;margin-bottom:4px;}
+.ugrid{display:grid;grid-template-columns:1fr 1fr;gap:2px;}
+.uc{padding:3px 6px;font-size:11px;font-weight:bold;display:flex;justify-content:space-between;border:1px solid rgba(255,255,255,0.1);}
+.uc.g{background:#005500;color:#ccffcc;}
+.uc.r{background:#770000;color:#ffcccc;}
+.uc.y{background:#775500;color:#ffeeaa;}
+.uc.k{background:#1a1a1a;color:#777;}
+.itabs{display:flex;gap:2px;margin-bottom:6px;}
+.itab{background:linear-gradient(180deg,#e0e8ff 0%,#b8caf0 100%);border:1px solid #7788cc;border-bottom:none;padding:3px 12px;font-size:12px;font-weight:bold;cursor:pointer;color:#000066;}
+.itab.on{background:linear-gradient(180deg,#fff 0%,#ddeeff 100%);color:#000080;}
+.itc{display:none;}
+.itc.on{display:block;}
+.scr{overflow-y:auto;}
+.scr::-webkit-scrollbar{width:14px;}
+.scr::-webkit-scrollbar-track{background:#c0c0c0;border:1px solid #888;}
+.scr::-webkit-scrollbar-thumb{background:#9090c0;border:1px solid #606090;}
+.mov{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:500;display:flex;align-items:center;justify-content:center;}
+.mov.h{display:none;}
+.mwin{background:#d0ddf5;border:2px solid #6688cc;width:90%;max-width:500px;box-shadow:4px 4px 16px rgba(0,0,0,0.6);}
+.ssel{background:white;border:1px inset #888;padding:2px 3px;font-size:11px;color:#000;width:100%;}
+.sinp{background:white;border:1px inset #888;padding:2px 3px;font-size:11px;color:#000;width:46px;}
+.drow{display:flex;border-bottom:1px solid #9999cc;padding:3px 6px;background:white;font-size:12px;}
+.dlbl{font-weight:bold;color:#000066;min-width:190px;}
+.dval{color:#000;}
+.ai{padding:4px 8px;border-bottom:1px solid #9999cc;cursor:pointer;background:white;font-size:12px;color:#000;}
+.ai:hover{background:#3366cc;color:#fff;}
+.tw{position:fixed;bottom:14px;right:14px;z-index:9000;display:flex;flex-direction:column;gap:5px;}
+.tt{background:#1e3f7a;border:2px solid #4477cc;color:#fff;padding:7px 12px;font-size:12px;min-width:220px;box-shadow:3px 3px 8px rgba(0,0,0,0.5);}
+.tt.e{border-color:#cc0000;background:#3a0000;}
+.tt.w{border-color:#cc8800;background:#2a1a00;}
+.tc{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+::-webkit-scrollbar{width:16px;}
+::-webkit-scrollbar-track{background:#c0c0c0;border:1px inset #888;}
+::-webkit-scrollbar-thumb{background:#9090b0;border:1px outset #aaaacc;}
+</style>
+</head>
+<body>
+<div id="loading">
+  <div style="font-size:50px;">&#128293;</div>
+  <div class="lt">TŰZOLTÓ IRÁNYÍTÁSI RENDSZER</div>
+  <div class="lt" style="font-size:11px;color:#ffaaaa;">Csongrád-Csanád Vármegyei Katasztrófavédelmi Igazgatóság</div>
+  <div class="lb"><div class="lf"></div></div>
+</div>
+<div id="loginscr">
+  <div class="lbox">
+    <span class="lfire">&#128293;</span>
+    <div class="ltitle">TŰZOLTÓ IRÁNYÍTÁSI RENDSZER</div>
+    <div class="lsub">Csongrád-Csanád Vármegyei Katasztrófavédelmi Igazgatóság</div>
+    <div class="lfrow"><label>Felhasználónév:</label><input type="text" class="linp" id="lu" value="diszpecser"></div>
+    <div class="lfrow"><label>Jelszó:</label><input type="password" class="linp" id="lp" value="1234"></div>
+    <button class="lbtn" onclick="doLogin()">Bejelentkezés</button>
+    <div class="lerr" id="lerr"></div>
+    <div class="lhint">Demo: diszpecser/1234 · parancsnok/admin · tuzolto1/1111</div>
+  </div>
+</div>
+<div id="frame"><div id="inner">
+<div id="app">
+<div class="topbar">
+  <span style="font-size:20px;">&#128293;</span>
+  <span class="ttitle">TŰZOLTÓ IRÁNYÍTÁSI RENDSZER – Csongrád-Csanád Vármegyei Katasztrófavédelmi Igazgatóság</span>
+  <div style="display:flex;align-items:center;gap:5px;"><span class="sdot" id="sd"></span><span class="slbl" id="sl">ÉLŐ SZINKRON</span></div>
+  <span class="tclock" id="clk">00:00:00</span>
+  <div class="tusr"><strong id="uname"></strong><button class="xb" onclick="doLogout()">Kijelentkezés</button></div>
+</div>
+<div class="nav">
+  <button class="ntab on" id="n0" onclick="sp('dashboard',this)">Áttekintő</button>
+  <button class="ntab" id="n1" onclick="sp('incidents',this)">Káresemények <span class="nbdg" id="badgeinc">0</span></button>
+  <button class="ntab" id="n2" onclick="sp('new-incident',this)">Új Káresemény</button>
+  <button class="ntab" id="n3" onclick="sp('status',this)">Szerállapot</button>
+  <button class="ntab" id="n4" onclick="sp('dispatch',this)">Riasztási Lap</button>
+</div>
+<div class="cnt">
+
+<div class="pg on" id="pg-dashboard">
+  <div class="dclock" id="dc">00:00:00</div>
+  <div class="dsub" id="dd">Csongrád-Csanád Vármegyei Katasztrófavédelmi Igazgatóság</div>
+  <div id="abars"></div>
+  <div class="sbar">FOLYAMATBAN LÉVŐ ESEMÉNYEK</div>
+  <div class="scr" style="max-height:170px;margin-bottom:10px;">
+    <table class="xt"><thead><tr><th>Település</th><th>Jelzés dátuma</th><th>Típus</th><th>Fokozat</th><th>Riasztási szám</th><th>Műveletek</th></tr></thead><tbody id="dashT"></tbody></table>
+  </div>
+  <div class="sbar">TŰZOLTÓÁLLOMÁSOK – EGYSÉGEK ÁLLAPOTA</div>
+  <div id="stgrid"></div>
+</div>
+
+<div class="pg" id="pg-incidents">
+  <div class="win"><div class="wbar">KÁRESEMÉNYEK LISTÁJA</div><div class="wbody">
+    <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap;">
+      <label style="color:#00006f;font-weight:bold;font-size:12px;">Keresés:</label>
+      <input type="text" class="xi" style="min-width:140px;" id="si" oninput="renderInc()" placeholder="...">
+      <label style="color:#00006f;font-weight:bold;font-size:12px;">Típus:</label>
+      <select class="xs" id="ft" onchange="renderInc()" style="min-width:130px;"><option value="">Összes</option><option>Tűzeset</option><option>Műszaki mentés</option><option>Veszélyes anyag</option><option>Természeti katasztrófa</option></select>
+      <label style="color:#00006f;font-weight:bold;font-size:12px;">Állapot:</label>
+      <select class="xs" id="fs" onchange="renderInc()" style="min-width:110px;"><option value="">Összes</option><option>Folyamatban</option><option>Lezárt</option></select>
+    </div>
+    <div class="scr" style="max-height:440px;">
+      <table class="xt"><thead><tr><th>Riasztási szám</th><th>Település</th><th>Cím</th><th>Jelzés</th><th>Típus</th><th>Fokozat</th><th>Állapot</th><th>Műveletek</th></tr></thead><tbody id="incT"></tbody></table>
+    </div>
+  </div></div>
+</div>
+
+<div class="pg" id="pg-new-incident">
+  <div style="text-align:center;color:#fff;font-size:14px;font-weight:bold;margin-bottom:8px;">ÚJ KÁRESEMÉNY FELVÉTELE</div>
+  <div class="tc">
+    <div>
+      <div class="win" style="margin-bottom:8px;"><div class="wbar">Helyszín meghatározása</div><div class="wbody" style="padding:6px;">
+        <div class="itabs">
+          <button class="itab on" onclick="sit('itcim',this)">Címkeresés</button>
+          <button class="itab" onclick="sit('itkoord',this)">Koordináták</button>
+          <button class="itab" onclick="sit('itatt',this)">Áttekintő</button>
+        </div>
+        <div class="itc on" id="itcim">
+          <div class="fl"><label>Település:</label><input type="text" class="xi" id="ns" style="min-width:130px;"></div>
+          <div class="fl"><label>Cím:</label><input type="text" class="xi" id="na" style="min-width:130px;"></div>
+          <div class="fl"><label>Irányítószám:</label><input type="text" class="xi" id="nz" style="min-width:70px;"></div>
+          <div style="display:flex;gap:5px;margin-top:5px;">
+            <button class="xbbl" onclick="srchAddr()">Keresés</button>
+            <button class="xb" onclick="clrSrch()">Új keresés</button>
+          </div>
+          <div style="font-weight:bold;font-size:12px;color:#00006f;margin-top:7px;margin-bottom:3px;">Találati lista</div>
+          <div id="ares" style="border:2px inset #888;min-height:30px;max-height:150px;overflow-y:auto;background:white;display:none;"></div>
+        </div>
+        <div class="itc" id="itkoord">
+          <div class="fl"><label>Szélesség:</label><input type="text" class="xi" id="nlat" placeholder="46.25..."></div>
+          <div class="fl"><label>Hosszúság:</label><input type="text" class="xi" id="nlon" placeholder="20.14..."></div>
+          <button class="xbbl" style="margin-top:5px;" onclick="goCoords()">Ugrás</button>
+        </div>
+        <div class="itc" id="itatt"><p style="color:#00006f;font-size:12px;padding:6px;">Kattintson a térképre.</p></div>
+      </div></div>
+      <div class="win"><div class="wbar">Térkép</div><div class="wbody" style="padding:4px;">
+        <div id="map"></div>
+        <div id="mhint" style="font-size:11px;color:#00006f;padding:3px;">Kattintson a térképre a helyszín kijelöléséhez</div>
+      </div></div>
+    </div>
+    <div>
+      <div class="win"><div class="wbar">Esemény adatai</div><div class="wbody">
+        <div class="fl"><label>Jelzés dátuma:</label><input type="datetime-local" class="xi" id="ndt" style="min-width:170px;"></div>
+        <div class="fl"><label>Káreset fajtája:</label><select class="xs" id="nty"><option>Tűzeset</option><option>Műszaki mentés</option><option>Veszélyes anyag</option><option>Természeti katasztrófa</option></select></div>
+        <div class="fl"><label>Kategória I.:</label><select class="xs" id="nc1"><option>Közlekedés</option><option>Épület</option><option>Természet</option><option>Ipar</option></select></div>
+        <div class="fl"><label>Kategória II.:</label><select class="xs" id="nc2"><option>Közúti</option><option>Vasúti</option><option>Vízi</option><option>Légi</option><option>Lakóépület</option><option>Raktár</option><option>Mező</option></select></div>
+        <div class="fl"><label>Kategória III.:</label><select class="xs" id="nc3"><option>Személygépkocsi</option><option>Tehergépjármű</option><option>Motoros</option><option>Busz</option><option>Kamion</option><option>Ismeretlen</option></select></div>
+        <div class="fl"><label>Kategória IV.:</label><select class="xs" id="nc4"><option>Ég</option><option>Füstölés</option><option>Robbanás</option><option>Felborult</option><option>Egy személy beszorult</option></select></div>
+        <div style="margin-bottom:6px;"><div style="font-weight:bold;color:#00006f;font-size:12px;margin-bottom:3px;">Esemény rövid leírása:</div><textarea class="xta" id="ndc"></textarea></div>
+        <div class="fl"><label>Bejelentő adatai:</label><input type="text" class="xi" id="nrp" placeholder="Név, telefon" style="min-width:170px;"></div>
+        <div class="fl"><label>Riasztási fokozat:</label><select class="xs" id="nlv" style="min-width:70px;"><option>I.</option><option>II.</option><option>III.</option></select></div>
+        <div class="fl"><label>Életveszély:</label><select class="xs" id="ndg" style="min-width:80px;"><option>Nem</option><option>Igen</option><option>Ismeretlen</option></select></div>
+        <div style="border-top:1px solid #9999cc;margin:8px 0;"></div>
+        <div style="display:flex;gap:6px;">
+          <button class="xbr" onclick="saveInc()" style="padding:6px 16px;font-size:13px;font-weight:bold;">&#128190; Mentés és Riasztás</button>
+          <button class="xb" onclick="clrInc()" style="padding:6px 12px;">Törlés</button>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<div class="pg" id="pg-status">
+  <div class="win"><div class="wbar">SZERÁLLAPOTKEZELÉS</div><div class="wbody" style="padding:5px;"><div id="stboard"></div></div></div>
+</div>
+
+<div class="pg" id="pg-dispatch">
+  <div class="win"><div class="wbar" id="dbar">RIASZTÁSI LAP</div><div class="wbody" style="padding:6px;">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+      <label style="color:#00006f;font-weight:bold;font-size:12px;">Esemény:</label>
+      <select class="xs" id="dsel" onchange="loadDisp()" style="min-width:320px;"></select>
+    </div>
+    <div class="tc" style="gap:8px;">
+      <div>
+        <div style="border:2px inset #888;margin-bottom:8px;"><div id="map2"></div></div>
+        <div class="sbar">RIASZTOTT SZEREK</div>
+        <div class="scr" style="max-height:180px;">
+          <table class="xt"><thead><tr><th>Szerrend</th><th>Állomás</th><th>Lsz.</th><th>Riasztás</th><th>Indulás</th><th>Kiérkezés</th><th>Visszaf.</th></tr></thead><tbody id="dunits"></tbody></table>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:7px;flex-wrap:wrap;">
+          <button class="xbgo" onclick="openAM()" style="padding:5px 14px;font-weight:bold;">&#128658; Szer Riasztása</button>
+          <button class="xbgr" onclick="closeInc()" style="padding:5px 12px;font-weight:bold;">&#9989; Lezárás</button>
+          <button class="xb" onclick="window.print()" style="padding:5px 10px;">&#128424; Nyomtatás</button>
+        </div>
+      </div>
+      <div>
+        <div class="sbar" id="dsbar">RIASZTÁSI LAP</div>
+        <div id="dsbody" style="border:1px solid #9999cc;background:white;"></div>
+      </div>
+    </div>
+  </div></div>
+</div>
+
+</div></div></div></div>
+
+<div class="mov h" id="modal">
+  <div class="mwin">
+    <div class="wbar"><span>&#128658; Szer Riasztása</span><button class="wclose" onclick="cm('modal')">X</button></div>
+    <div class="wbody" style="padding:14px;">
+      <div class="fl"><label>Állomás:</label><select class="xs" id="ast" onchange="updAU()" style="min-width:200px;"></select></div>
+      <div class="fl"><label>Szer:</label><select class="xs" id="aun" style="min-width:200px;"></select></div>
+      <div class="fl"><label>Létszám:</label><input type="number" class="xi" id="acr" value="6" min="1" max="20" style="min-width:60px;"></div>
+      <div class="fl"><label>Megjegyzés:</label><input type="text" class="xi" id="ano" placeholder="pl. 4000 l víz" style="min-width:200px;"></div>
+      <div style="border-top:1px solid #9999cc;margin:8px 0;"></div>
+      <div style="display:flex;gap:6px;">
+        <button class="xbr" onclick="confA()" style="padding:6px 18px;font-weight:bold;">&#128680; Riasztás</button>
+        <button class="xb" onclick="cm('modal')" style="padding:6px 12px;">Mégse</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="tw" id="tw"></div>
+
+<script>
+const USERS={diszpecser:'1234',parancsnok:'admin',tuzolto1:'1111',tuzolto2:'2222'};
+let U=null,db,fbR,fbS,fbP,fbOV,fbU,fbG;
+let m1=null,m2=null,mk1=null,mk2=null;
+let INC={},ST={},DID=null;
+const SOPT=['Állomáshelyen van','Rádión riasztható','Kivonulva','Kiérkezte','Visszafordult','Riasztható, de nincs rá létszám','Műszaki hiba','Késleltetve riasztható','Székhelytelepüléstől távol van'];
+const DST={
+  'Szegedi HTP':{units:{
+    'Szeged/1':{type:'Gépjárműfecskendő',plate:'CSD-001',crew:6,status:'Állomáshelyen van'},
+    'Szeged/2':{type:'Gépjárműfecskendő',plate:'CSD-002',crew:6,status:'Állomáshelyen van'},
+    'Szeged/3':{type:'Gépjárműfecskendő',plate:'CSD-003',crew:6,status:'Állomáshelyen van'},
+    'Szeged/Létra':{type:'Magasból mentő létrás',plate:'CSD-010',crew:3,status:'Állomáshelyen van'},
+    'Szeged/Emelő':{type:'Tolólétrás emelő',plate:'CSD-011',crew:2,status:'Állomáshelyen van'},
+    'Szeged/Műszaki':{type:'Műszaki mentő gépjármű',plate:'CSD-020',crew:4,status:'Állomáshelyen van'},
+    'Szeged/Hab':{type:'Habkocsi',plate:'CSD-030',crew:3,status:'Állomáshelyen van'},
+    'Szeged/Víz':{type:'Vízszállító gépjármű',plate:'CSD-040',crew:2,status:'Állomáshelyen van'},
+    'Szeged/Csónak':{type:'Csónakszállító',plate:'CSD-050',crew:2,status:'Állomáshelyen van'},
+    'Szeged/Vez.':{type:'Tűzoltás-vezető gépjármű',plate:'CSD-060',crew:2,status:'Állomáshelyen van'},
+    'Szeged/Tartalék':{type:'Gépjárműfecskendő tartalék',plate:'CSD-099',crew:0,status:'Állomáshelyen van'}
+  }},
+  'Csongrádi GTP':{units:{
+    'Csongrád/1':{type:'Gépjárműfecskendő',plate:'CSG-101',crew:6,status:'Állomáshelyen van'},
+    'Csongrád/2':{type:'Gépjárműfecskendő',plate:'CSG-102',crew:4,status:'Állomáshelyen van'},
+    'Csongrád/Víz':{type:'Vízszállító gépjármű',plate:'CSG-140',crew:2,status:'Állomáshelyen van'},
+    'Csongrád/Műsz.':{type:'Műszaki mentő gépjármű',plate:'CSG-120',crew:3,status:'Állomáshelyen van'},
+    'Csongrád/Vez.':{type:'Tűzoltás-vezető gépjármű',plate:'CSG-160',crew:1,status:'Állomáshelyen van'},
+    'Csongrád/Tart.':{type:'Gépjárműfecskendő tartalék',plate:'CSG-199',crew:0,status:'Állomáshelyen van'}
+  }},
+  'Hódmezővásárhelyi HTP':{units:{
+    'Hódmvh./1':{type:'Gépjárműfecskendő',plate:'CSH-201',crew:6,status:'Állomáshelyen van'},
+    'Hódmvh./2':{type:'Gépjárműfecskendő',plate:'CSH-202',crew:6,status:'Állomáshelyen van'},
+    'Hódmvh./Létra':{type:'Magasból mentő létrás',plate:'CSH-210',crew:3,status:'Állomáshelyen van'},
+    'Hódmvh./Műsz.':{type:'Műszaki mentő gépjármű',plate:'CSH-220',crew:4,status:'Állomáshelyen van'},
+    'Hódmvh./Víz':{type:'Vízszállító gépjármű',plate:'CSH-240',crew:2,status:'Állomáshelyen van'},
+    'Hódmvh./Csónak':{type:'Csónakszállító',plate:'CSH-250',crew:2,status:'Rádión riasztható'},
+    'Hódmvh./Vez.':{type:'Tűzoltás-vezető gépjármű',plate:'CSH-260',crew:2,status:'Állomáshelyen van'},
+    'Hódmvh./Tart.':{type:'Gépjárműfecskendő tartalék',plate:'CSH-299',crew:0,status:'Állomáshelyen van'}
+  }},
+  'Makói HTP':{units:{
+    'Makó/1':{type:'Gépjárműfecskendő',plate:'CSM-301',crew:6,status:'Állomáshelyen van'},
+    'Makó/2':{type:'Gépjárműfecskendő',plate:'CSM-302',crew:4,status:'Állomáshelyen van'},
+    'Makó/Létra':{type:'Tolólétrás gépjármű',plate:'CSM-310',crew:2,status:'Állomáshelyen van'},
+    'Makó/Műsz.':{type:'Műszaki mentő gépjármű',plate:'CSM-320',crew:3,status:'Állomáshelyen van'},
+    'Makó/Víz':{type:'Vízszállító gépjármű',plate:'CSM-340',crew:2,status:'Állomáshelyen van'},
+    'Makó/Vez.':{type:'Tűzoltás-vezető gépjármű',plate:'CSM-360',crew:1,status:'Állomáshelyen van'},
+    'Makó/Tart.':{type:'Gépjárműfecskendő tartalék',plate:'CSM-399',crew:0,status:'Késleltetve riasztható'}
+  }},
+  'Szentesi HTP':{units:{
+    'Szentes/1':{type:'Gépjárműfecskendő',plate:'CSS-401',crew:6,status:'Állomáshelyen van'},
+    'Szentes/2':{type:'Gépjárműfecskendő',plate:'CSS-402',crew:4,status:'Állomáshelyen van'},
+    'Szentes/Létra':{type:'Tolólétrás gépjármű',plate:'CSS-410',crew:2,status:'Állomáshelyen van'},
+    'Szentes/Műsz.':{type:'Műszaki mentő gépjármű',plate:'CSS-420',crew:3,status:'Állomáshelyen van'},
+    'Szentes/Víz':{type:'Vízszállító gépjármű',plate:'CSS-440',crew:2,status:'Állomáshelyen van'},
+    'Szentes/Csónak':{type:'Csónakszállító',plate:'CSS-450',crew:2,status:'Rádión riasztható'},
+    'Szentes/Vez.':{type:'Tűzoltás-vezető gépjármű',plate:'CSS-460',crew:1,status:'Állomáshelyen van'},
+    'Szentes/Tart.':{type:'Gépjárműfecskendő tartalék',plate:'CSS-499',crew:0,status:'Állomáshelyen van'}
+  }}
+};
+const MC=[46.253,20.148];
+
+window.addEventListener('firebase-ready',()=>{
+  const f=window.FB;db=f.db;fbR=f.ref;fbS=f.set;fbP=f.push;fbOV=f.onValue;fbU=f.update;fbG=f.get;
+  fbS(fbR(db,'stations'),DST);
+  fbOV(fbR(db,'stations'),s=>{ST=s.val()||DST;if(U){rdSt();rSB();updAU();}});
+  fbOV(fbR(db,'incidents'),s=>{INC=s.val()||{};if(U){upB();rdDI();renderInc();pDS();if(DID)loadDisp();}});
+  sSync(true);
+  document.getElementById('loading').style.display='none';
+  document.getElementById('loginscr').classList.add('show');
+});
+
+function sSync(on){
+  document.getElementById('sd').className='sdot'+(on?'':' off');
+  const l=document.getElementById('sl');l.textContent=on?'ÉLŐ SZINKRON':'OFFLINE';l.style.color=on?'#88ff88':'#ff8888';
+}
+function doLogin(){
+  const u=document.getElementById('lu').value.trim(),p=document.getElementById('lp').value;
+  if(USERS[u]&&USERS[u]===p){
+    U=u;document.getElementById('loginscr').classList.remove('show');
+    document.getElementById('app').classList.add('on');document.getElementById('uname').textContent=u;
+    document.getElementById('ndt').value=new Date().toISOString().slice(0,16);
+    rdDash();toast('Üdvözöljük, '+u+'!');
+  }else{document.getElementById('lerr').textContent='Hibás felhasználónév vagy jelszó!';setTimeout(()=>document.getElementById('lerr').textContent='',3000);}
+}
+document.getElementById('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+function doLogout(){U=null;document.getElementById('app').classList.remove('on');document.getElementById('loginscr').classList.add('show');}
+
+function tick(){
+  const n=new Date(),t=p2(n.getHours())+':'+p2(n.getMinutes())+':'+p2(n.getSeconds());
+  document.getElementById('clk').textContent=t;document.getElementById('dc').textContent=t;
+  const d=['vasárnap','hétfő','kedd','szerda','csütörtök','péntek','szombat'];
+  document.getElementById('dd').textContent=n.getFullYear()+'. '+p2(n.getMonth()+1)+'. '+p2(n.getDate())+'. – '+d[n.getDay()]+' – Csongrád-Csanád Vármegyei Katasztrófavédelmi Igazgatóság';
+}
+function p2(n){return String(n).padStart(2,'0');}
+setInterval(tick,1000);tick();
+
+function sp(id,btn){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('on'));
+  document.getElementById('pg-'+id).classList.add('on');if(btn)btn.classList.add('on');
+  if(id==='new-incident')setTimeout(iM1,100);
+  if(id==='dispatch')setTimeout(()=>{iM2();pDS();loadDisp();},100);
+  if(id==='status')rSB();
+  if(id==='incidents')renderInc();
+  if(id==='dashboard')rdDash();
+}
+function sit(id,btn){
+  document.querySelectorAll('.itc').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.itab').forEach(b=>b.classList.remove('on'));
+  document.getElementById(id).classList.add('on');btn.classList.add('on');
+}
+
+function rdDash(){rdDI();rdSt();}
+function rdDI(){
+  const tb=document.getElementById('dashT');if(!tb)return;
+  const ab=document.getElementById('abars');ab.innerHTML='';tb.innerHTML='';upB();
+  const act=Object.entries(INC).filter(([,v])=>v.status==='Folyamatban').sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
+  if(!act.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:#666;padding:10px;">Nincs aktív esemény</td></tr>';return;}
+  act.forEach(([k,i])=>{
+    if(i.level==='III.'||i.level==='II.'){
+      const d=document.createElement('div');d.className='abar';
+      d.innerHTML='&#9888; <strong>'+(i.id||k)+'</strong> – '+i.settlement+', '+i.address+' – '+i.type+' – Fokozat: '+i.level+' <button class="xb" style="margin-left:auto;" onclick="od(\''+k+'\')">Megnyitás</button>';
+      ab.appendChild(d);
+    }
+    const tr=document.createElement('tr');tr.className=i.level==='III.'?'rr':i.level==='II.'?'ry':'rg';
+    tr.innerHTML='<td>'+i.settlement+'</td><td>'+i.date+'</td><td>'+i.type+'</td><td><span class="bdg '+(i.level==='III.'?'br':i.level==='II.'?'by':'bg')+'">'+i.level+'</span></td><td><button class="lnk" onclick="od(\''+k+'\')">'+( i.id||k)+'</button></td><td><button class="xbbl" style="padding:2px 8px;font-size:11px;" onclick="od(\''+k+'\')">Lap</button></td>';
+    tb.appendChild(tr);
+  });
+}
+function rdSt(){
+  const g=document.getElementById('stgrid');if(!g)return;g.innerHTML='';
+  const w=document.createElement('div');w.className='sgrid';
+  Object.entries(ST).forEach(([sn,st])=>{
+    const c=document.createElement('div');c.className='sc';
+    c.innerHTML='<div class="stitle">'+sn+'</div><div class="ugrid">'+Object.entries(st.units||{}).map(([un,u])=>{
+      const cl=sc(u.status);return'<div class="uc '+cl+'"><span>'+un+'</span><span style="font-size:10px;">'+(u.crew||0)+' fő</span></div>';
+    }).join('')+'</div>';
+    w.appendChild(c);
+  });g.appendChild(w);
+}
+function upB(){document.getElementById('badgeinc').textContent=Object.values(INC).filter(i=>i.status==='Folyamatban').length;}
+function sc(s){if(!s||s==='Állomáshelyen van'||s==='Visszafordult')return'g';if(s==='Kivonulva'||s==='Kiérkezte')return'r';if(s==='Műszaki hiba')return'k';return'y';}
+
+function renderInc(){
+  const q=(document.getElementById('si')?.value||'').toLowerCase();
+  const ft=document.getElementById('ft')?.value||'',fs=document.getElementById('fs')?.value||'';
+  const tb=document.getElementById('incT');if(!tb)return;tb.innerHTML='';
+  const list=Object.entries(INC).filter(([,v])=>(!q||(v.id||'').toLowerCase().includes(q)||(v.settlement||'').toLowerCase().includes(q)||(v.address||'').toLowerCase().includes(q))&&(!ft||v.type===ft)&&(!fs||v.status===fs)).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
+  if(!list.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:#666;padding:10px;">Nincs találat</td></tr>';return;}
+  list.forEach(([k,i])=>{
+    const tr=document.createElement('tr');tr.className=i.status==='Folyamatban'?(i.level==='III.'?'rr':i.level==='II.'?'ry':'rg'):'';
+    tr.innerHTML='<td><button class="lnk" onclick="od(\''+k+'\')">'+( i.id||k)+'</button></td><td>'+i.settlement+'</td><td>'+i.address+'</td><td>'+i.date+'</td><td>'+i.type+'</td><td><span class="bdg '+(i.level==='III.'?'br':i.level==='II.'?'by':'bb')+'">'+i.level+'</span></td><td><span class="bdg '+(i.status==='Folyamatban'?'br':'bg')+'">'+i.status+'</span></td><td style="display:flex;gap:3px;"><button class="xbbl" style="padding:2px 6px;font-size:11px;" onclick="od(\''+k+'\')">Lap</button>'+(i.status==='Folyamatban'?'<button class="xbgr" style="padding:2px 6px;font-size:11px;" onclick="sIS(\''+k+'\',\'Lezárt\')">Lezár</button>':'')+'</td>';
+    tb.appendChild(tr);
+  });
+}
+function sIS(k,s){fbU(fbR(db,'incidents/'+k),{status:s});toast(s==='Lezárt'?'Esemény lezárva.':'Frissítve.');}
+
+function ri(){return L.divIcon({html:'<div style="background:#cc0000;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 8px rgba(200,0,0,0.9);"></div>',iconSize:[16,16],iconAnchor:[8,8]});}
+function iM1(){if(m1){m1.invalidateSize();return;}m1=L.map('map').setView(MC,9);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(m1);m1.on('click',e=>{const{lat,lng}=e.latlng;document.getElementById('nlat').value=lat.toFixed(6);document.getElementById('nlon').value=lng.toFixed(6);document.getElementById('mhint').textContent='Kijelölve: '+lat.toFixed(5)+', '+lng.toFixed(5);if(mk1)m1.removeLayer(mk1);mk1=L.marker([lat,lng],{icon:ri()}).addTo(m1);});}
+function iM2(){if(m2){m2.invalidateSize();return;}m2=L.map('map2').setView(MC,9);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(m2);}
+function srchAddr(){
+  const s=document.getElementById('ns').value.trim(),a=document.getElementById('na').value.trim();
+  const q=encodeURIComponent([s,a].filter(Boolean).join(', ')+', Magyarország');
+  const d=document.getElementById('ares');d.style.display='block';d.innerHTML='<div class="ai">Keresés...</div>';
+  fetch('https://nominatim.openstreetmap.org/search?q='+q+'&format=json&limit=8&countrycodes=hu').then(r=>r.json()).then(data=>{
+    if(!data.length){d.innerHTML='<div class="ai">Nem található.</div>';return;}
+    d.innerHTML=data.map(r=>'<div class="ai" onclick="selA('+r.lat+','+r.lon+',\''+r.display_name.replace(/'/g,"\\'")+'\')">' +r.display_name+'</div>').join('');
+  }).catch(()=>{d.innerHTML='<div class="ai">Hálózati hiba.</div>';});
+}
+function selA(lat,lon,name){
+  document.getElementById('nlat').value=parseFloat(lat).toFixed(6);document.getElementById('nlon').value=parseFloat(lon).toFixed(6);
+  document.getElementById('mhint').textContent='Kijelölve: '+name.substring(0,70);
+  if(!m1)iM1();if(mk1)m1.removeLayer(mk1);mk1=L.marker([lat,lon],{icon:ri()}).addTo(m1);m1.setView([lat,lon],15);
+  document.getElementById('ares').style.display='none';
+}
+function clrSrch(){['ns','na','nz'].forEach(id=>document.getElementById(id).value='');document.getElementById('ares').style.display='none';}
+function goCoords(){const lat=parseFloat(document.getElementById('nlat').value),lon=parseFloat(document.getElementById('nlon').value);if(isNaN(lat)||isNaN(lon))return;if(!m1)iM1();if(mk1)m1.removeLayer(mk1);mk1=L.marker([lat,lon],{icon:ri()}).addTo(m1);m1.setView([lat,lon],15);}
+
+function saveInc(){
+  const s=document.getElementById('ns').value.trim();if(!s){toast('Töltse ki a település mezőt!','e');return;}
+  const now=new Date(),yr=now.getFullYear(),num=String(Object.keys(INC).length+1).padStart(5,'0');
+  const id=yr+'CSONGRÁD'+num;
+  const inc={id,settlement:s,address:document.getElementById('na').value.trim(),date:document.getElementById('ndt').value.replace('T',' '),
+    type:document.getElementById('nty').value,cat1:document.getElementById('nc1').value,cat2:document.getElementById('nc2').value,
+    cat3:document.getElementById('nc3').value,cat4:document.getElementById('nc4').value,desc:document.getElementById('ndc').value,
+    reporter:document.getElementById('nrp').value,level:document.getElementById('nlv').value,danger:document.getElementById('ndg').value,
+    status:'Folyamatban',lat:parseFloat(document.getElementById('nlat').value)||46.25,lon:parseFloat(document.getElementById('nlon').value)||20.14,
+    units:[],createdAt:Date.now(),createdBy:U};
+  const r=fbP(fbR(db,'incidents'));
+  fbS(r,inc).then(()=>{toast('Káresemény rögzítve: '+id);clrInc();sp('incidents',document.getElementById('n1'));}).catch(e=>toast('Hiba: '+e.message,'e'));
+}
+function clrInc(){
+  ['ns','na','nz','nlat','nlon','ndc','nrp'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ares').style.display='none';document.getElementById('mhint').textContent='Kattintson a térképre';
+  if(mk1&&m1){m1.removeLayer(mk1);mk1=null;}document.getElementById('ndt').value=new Date().toISOString().slice(0,16);
+}
+
+function rSB(){
+  const b=document.getElementById('stboard');if(!b)return;b.innerHTML='';
+  Object.entries(ST).forEach(([sn,st])=>{
+    const sec=document.createElement('div');sec.style.marginBottom='8px';
+    sec.innerHTML='<div class="sbar">'+sn+'</div>';
+    const t=document.createElement('table');t.className='xt';
+    t.innerHTML='<thead><tr><th>Szerrend</th><th>Típus</th><th>Rendszám</th><th>Szerállapot</th><th>Létszám</th></tr></thead>';
+    const tb=document.createElement('tbody');
+    Object.entries(st.units||{}).forEach(([un,u])=>{
+      const c=sc(u.status);const tr=document.createElement('tr');tr.className=c==='r'?'rr':c==='y'?'ry':c==='g'?'rg':'';
+      tr.innerHTML='<td style="font-weight:bold;">'+un+'</td><td>'+u.type+'</td><td style="font-family:Courier New,monospace;">'+u.plate+'</td><td><select class="ssel" onchange="upU(\''+sn+'\',\''+un+'\',\'status\',this.value)">'+SOPT.map(s=>'<option'+(s===u.status?' selected':'')+'>'+s+'</option>').join('')+'</select></td><td><input type="number" class="sinp" value="'+(u.crew||0)+'" min="0" max="20" onchange="upU(\''+sn+'\',\''+un+'\',\'crew\',this.value)"></td>';
+      tb.appendChild(tr);
+    });t.appendChild(tb);sec.appendChild(t);b.appendChild(sec);
+  });
+}
+function upU(sn,un,f,v){fbU(fbR(db,'stations/'+sn+'/units/'+un),{[f]:f==='crew'?parseInt(v):v});}
+
+function pDS(){
+  const sel=document.getElementById('dsel');if(!sel)return;
+  const prev=DID||sel.value;
+  sel.innerHTML='<option value="">– Válasszon eseményt –</option>'+Object.entries(INC).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0)).map(([k,v])=>'<option value="'+k+'">'+(v.id||k)+' – '+v.settlement+' ('+v.status+')</option>').join('');
+  if(prev)sel.value=prev;
+}
+function loadDisp(){
+  const sel=document.getElementById('dsel');const k=(sel&&sel.value)||DID;if(!k)return;
+  DID=k;const i=INC[k];if(!i)return;
+  document.getElementById('dbar').textContent='RIASZTÁSI LAP ('+(i.id||k)+')';
+  document.getElementById('dsbar').textContent='RIASZTÁSI LAP – '+(i.id||k);
+  if(m2){m2.setView([i.lat||46.25,i.lon||20.14],14);if(mk2)m2.removeLayer(mk2);mk2=L.marker([i.lat||46.25,i.lon||20.14],{icon:ri()}).addTo(m2).bindPopup('<b>'+(i.id||k)+'</b><br>'+i.settlement+', '+i.address).openPopup();}
+  const tb=document.getElementById('dunits');const u=i.units||[];
+  tb.innerHTML=!u.length?'<tr><td colspan="7" style="text-align:center;color:#666;padding:8px;">Nincs riasztott egység</td></tr>':u.map(u=>'<tr><td style="font-weight:bold;">'+u.name+'</td><td>'+u.station+'</td><td>'+u.crew+' fő</td><td style="font-family:Courier New,monospace;font-size:11px;">'+(u.alertTime||'–')+'</td><td>'+(u.departTime||'–')+'</td><td>'+(u.arriveTime||'–')+'</td><td>'+(u.returnTime||'–')+'</td></tr>').join('');
+  const flds=[['Település',i.settlement],['Cím',i.address],['Jelzés dátuma',i.date],['Káreset fajtája',i.type],['Kategória I.',i.cat1],['Kategória II.',i.cat2],['Kategória III.',i.cat3],['Kategória IV.',i.cat4],['Esemény leírása',i.desc],['Bejelentő',i.reporter],['Riasztási fokozat',i.level],['Életveszély',i.danger],['Állapot',i.status],['Rögzítette',i.createdBy||'–']];
+  document.getElementById('dsbody').innerHTML=flds.map(([l,v])=>'<div class="drow"><span class="dlbl">'+l+':</span><span class="dval">'+(v||'–')+'</span></div>').join('');
+}
+function od(k){DID=k;sp('dispatch',document.getElementById('n4'));setTimeout(()=>{iM2();pDS();loadDisp();},150);}
+function openAM(){
+  if(!DID){toast('Válasszon eseményt!','w');return;}
+  document.getElementById('ast').innerHTML=Object.keys(ST).map(s=>'<option>'+s+'</option>').join('');
+  updAU();document.getElementById('modal').classList.remove('h');
+}
+function updAU(){
+  const sn=document.getElementById('ast')?.value,us=document.getElementById('aun');
+  if(!us||!sn||!ST[sn])return;
+  us.innerHTML=Object.entries(ST[sn].units||{}).map(([k,v])=>'<option value="'+k+'">'+k+' – '+v.type+'</option>').join('');
+}
+function confA(){
+  const i=INC[DID];if(!i)return;
+  const ts=new Date().toISOString().replace('T',' ').slice(0,19);
+  const un={name:document.getElementById('aun').value,station:document.getElementById('ast').value,crew:parseInt(document.getElementById('acr').value)||1,note:document.getElementById('ano').value,alertTime:ts,departTime:'',arriveTime:'',returnTime:''};
+  const units=i.units?[...i.units,un]:[un];
+  fbU(fbR(db,'incidents/'+DID),{units});
+  fbU(fbR(db,'stations/'+un.station+'/units/'+un.name),{status:'Kivonulva'});
+  cm('modal');toast('&#128658; '+un.name+' riasztva!');
+}
+function closeInc(){if(!DID)return;if(!confirm('Biztosan lezárja ezt az eseményt?'))return;fbU(fbR(db,'incidents/'+DID),{status:'Lezárt'});toast('Esemény lezárva.');}
+function cm(id){document.getElementById(id).classList.add('h');}
+
+function toast(msg,type){
+  const c=document.getElementById('tw'),t=document.createElement('div');
+  t.className='tt'+(type==='e'?' e':type==='w'?' w':'');t.innerHTML=msg;c.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity 0.4s';setTimeout(()=>t.remove(),400);},3500);
+}
+</script>
+</body>
+</html>
