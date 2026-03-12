@@ -1110,7 +1110,24 @@ function setIS(k,s){
   if(firebaseReady)fbUpdate(fbRef(db,'incidents_cc2/'+k),{status:s});
   toast(s==='Lezárt'?'Esemény lezárva.':'Frissítve.');renderIncidents();renderDashInc();
 }
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyAcudE4fBAdD5IxRyPHOi0GxIwe7tZRCSA",
+  authDomain: "tuzolto-rendszer.firebaseapp.com",
+  databaseURL: "https://tuzolto-rendszer-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "tuzolto-rendszer",
+  storageBucket: "tuzolto-rendszer.firebasestorage.app",
+  messagingSenderId: "483542268965",
+  appId: "1:483542268965:web:78009fde4e4d6820c793cc"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 // ══════════════════════════════════════════════
 // MAP
 // ══════════════════════════════════════════════
